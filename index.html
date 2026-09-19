@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TON Lucky Spin Giveaway</title>
     <script src="https://telegram.org/js/telegram-webapp.js"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@1.0.0-beta.1/dist/tonconnect-ui.min.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -52,8 +52,6 @@
             font-size: 13px;
             font-weight: bold;
             cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
         }
         #ton-connect {
             display: flex;
@@ -146,8 +144,8 @@
     <p>Step 1: Join Channel & Group</p>
     
     <div class="social-links">
-        <a class="social-btn" href="https://t.me/EpicWinOnTON" target="_blank">📢 Join Channel</a>
-        <a class="social-btn" href="https://t.me/+V0O3UeshzgQzOTFk" target="_blank">💬 Join Group</a>
+        <button class="social-btn" onclick="openTgLink('https://t.me/EpicWinOnTON')">📢 Join Channel</button>
+        <button class="social-btn" onclick="openTgLink('https://t.me/+V0O3UeshzgQzOTFk')">💬 Join Group</button>
     </div>
 
     <p>Step 2: Connect Wallet & Spin (2 TON)</p>
@@ -174,8 +172,7 @@
 </div>
 
 <script>
-    // Initialize Telegram WebApp
-    let tg = window.Telegram ? window.Telegram.WebApp : null;
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
     if (tg) {
         tg.ready();
         tg.expand();
@@ -183,7 +180,15 @@
 
     const RECIPIENT_WALLET = "UQDj1NhxiHUEJKGyJw4lg6oP-br5Ruq-onWu7VJqUdZvkJCk"; 
 
-    // Setup Referral Link safely
+    function openTgLink(url) {
+        if (tg && tg.openTelegramLink) {
+            tg.openTelegramLink(url);
+        } else {
+            window.open(url, '_blank');
+        }
+    }
+
+    // Setup Referral Link
     try {
         let userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : Math.floor(100000 + Math.random() * 900000);
         let botUsername = "EpicWinOnTon_bot";
@@ -195,10 +200,10 @@
     function copyReferralLink() {
         let refInput = document.getElementById('ref-link');
         refInput.select();
-        refInput.setSelectionRange(0, 99999);
         try {
             navigator.clipboard.writeText(refInput.value);
-            alert("Referral link copied!");
+            if (tg && tg.showAlert) tg.showAlert("Referral link copied!");
+            else alert("Referral link copied!");
         } catch (e) {
             document.execCommand('copy');
             alert("Referral link copied!");
@@ -234,28 +239,44 @@
     }
     drawWheel();
 
-    // TON Connect UI with demo manifest URL
-    let tonConnectUI = null;
-    try {
-        tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://raw.githubusercontent.com/ton-community/tutorials/main/03-client/5-connect-wallet/public/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect'
-        });
+    // TonConnect Setup with embedded Manifest Data URI
+    const manifestData = {
+        url: window.location.href,
+        name: "EPIC WIN Giveaway",
+        iconUrl: "https://ton.org/download/ton_symbol.png"
+    };
+    const manifestUrl = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(manifestData));
 
-        tonConnectUI.onStatusChange(wallet => {
-            const spinBtn = document.getElementById('spin-btn');
-            if (wallet) {
-                spinBtn.disabled = false;
-            } else {
-                spinBtn.disabled = true;
-            }
-        });
-    } catch (err) {
-        console.error("TON Connect Error: ", err);
-    }
+    // Configured for ALL TON Wallets including Telegram @wallet
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: manifestUrl,
+        buttonRootId: 'ton-connect',
+        walletsListConfiguration: {
+            includeWallets: [
+                {
+                    appName: "telegram-wallet",
+                    name: "Wallet in Telegram",
+                    imageUrl: "https://wallet.tg/images/logo-288.png",
+                    aboutUrl: "https://wallet.tg/",
+                    universalLink: "https://t.me/wallet/start",
+                    bridgeUrl: "https://bridge.tonapi.io/bridge",
+                    platforms: ["ios", "android", "macos", "windows", "linux"]
+                }
+            ]
+        }
+    });
+
+    tonConnectUI.onStatusChange(wallet => {
+        const spinBtn = document.getElementById('spin-btn');
+        if (wallet) {
+            spinBtn.disabled = false;
+        } else {
+            spinBtn.disabled = true;
+        }
+    });
 
     async function processSpin() {
-        if (!tonConnectUI || !tonConnectUI.connected) {
+        if (!tonConnectUI.connected) {
             alert("Please connect your TON wallet first!");
             return;
         }
@@ -265,7 +286,7 @@
             messages: [
                 {
                     address: RECIPIENT_WALLET,
-                    amount: "2000000000"
+                    amount: "2000000000" // 2 TON
                 }
             ]
         };
@@ -277,7 +298,7 @@
                 startWheelAnimation();
             }
         } catch (e) {
-            alert("Transaction failed or canceled.");
+            alert("Transaction was canceled or failed.");
         }
     }
 
@@ -302,5 +323,5 @@
 </script>
 
 </body>
-  </html>
-  
+        </html>
+    
