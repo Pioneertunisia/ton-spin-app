@@ -1,1 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TON Lucky Spin Giveaway</title>
+    <script src="https://telegram.org/js/telegram-webapp.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 380px;
+            width: 100%;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        h2 {
+            margin-top: 0;
+            color: #0088cc;
+        }
+        p {
+            font-size: 14px;
+            color: #aaa;
+        }
+        .social-links {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .social-btn {
+            flex: 1;
+            background-color: #282e33;
+            color: #0088cc;
+            border: 1px solid #0088cc;
+            padding: 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        #ton-connect {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        .wheel-container {
+            position: relative;
+            margin: 15px auto;
+            width: 260px;
+            height: 260px;
+        }
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid #0088cc;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+        .pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 20px solid #ff4757;
+            z-index: 10;
+        }
+        .action-btn {
+            background-color: #0088cc;
+            color: #fff;
+            border: none;
+            padding: 14px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .action-btn:disabled {
+            background-color: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+        .ref-box {
+            margin-top: 20px;
+            padding: 12px;
+            background-color: #252525;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        .ref-input {
+            width: 100%;
+            padding: 8px;
+            background-color: #111;
+            border: 1px solid #444;
+            color: #0088cc;
+            border-radius: 6px;
+            font-size: 12px;
+            box-sizing: border-box;
+            margin-top: 5px;
+            text-align: center;
+        }
+        #result-box {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #0d233a;
+            border: 2px dashed #0088cc;
+            border-radius: 10px;
+        }
+        .code-display {
+            font-size: 22px;
+            font-weight: bold;
+            color: #2ed573;
+            letter-spacing: 2px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
 
+<div class="container">
+    <h2>Giveaway Spin</h2>
+    <p>Step 1: Join Channel & Group</p>
+    
+    <div class="social-links">
+        <a href="https://t.me/EpicWinOnTON" target="_blank" class="social-btn">📢 Join Channel</a>
+        <a href="https://t.me/+V0O3UeshzgQzOTFk" target="_blank" class="social-btn">💬 Join Group</a>
+    </div>
+
+    <p>Step 2: Connect Wallet & Spin (2 TON)</p>
+    <div id="ton-connect"></div>
+
+    <div class="wheel-container">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="260" height="260"></canvas>
+    </div>
+
+    <button id="spin-btn" class="action-btn" onclick="processSpin()" disabled>Pay 2 TON & Spin</button>
+
+    <div id="result-box">
+        <p style="color: #fff; margin:0;">🎉 Your Entry Ticket Code:</p>
+        <div id="user-code" class="code-display"></div>
+        <p style="font-size: 12px;">Copy and post this code in the official group to confirm your spot!</p>
+    </div>
+
+    <div class="ref-box">
+        <p style="margin: 0; font-size: 13px; color: #fff;">🔗 Your Referral Link:</p>
+        <input type="text" id="ref-link" class="ref-input" readonly value="Loading..." />
+        <button class="action-btn" style="padding: 8px; font-size: 12px; margin-top: 8px;" onclick="copyReferralLink()">Copy Referral Link</button>
+    </div>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    // YOUR TON WALLET ADDRESS
+    const RECIPIENT_WALLET = "UQDj1NhxiHUEJKGyJw4lg6oP-br5Ruq-onWu7VJqUdZvkJCk"; 
+
+    // Setup Referral Link using Telegram User ID
+    const userId = tg.initDataUnsafe?.user?.id || "guest";
+    const botUsername = "EpicWinOnTon_bot"; // Bot Username
+    const referralUrl = `https://t.me/${botUsername}?start=ref_${userId}`;
+    document.getElementById('ref-link').value = referralUrl;
+
+    function copyReferralLink() {
+        const refInput = document.getElementById('ref-link');
+        refInput.select();
+        document.execCommand('copy');
+        alert("Referral link copied to clipboard!");
+    }
+
+    // Wheel Setup
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const segments = ['CODE A', 'CODE B', 'CODE C', 'GOLD CODE', 'CODE D', 'SPECIAL CODE'];
+    const colors = ['#20bf6b', '#eb3b5a', '#fa8231', '#f7b731', '#8854d0', '#38ada9'];
+
+    function drawWheel() {
+        const numSegments = segments.length;
+        const anglePerSegment = (2 * Math.PI) / numSegments;
+
+        for (let i = 0; i < numSegments; i++) {
+            ctx.beginPath();
+            ctx.fillStyle = colors[i];
+            ctx.moveTo(130, 130);
+            ctx.arc(130, 130, 130, i * anglePerSegment, (i + 1) * anglePerSegment);
+            ctx.fill();
+            ctx.save();
+
+            ctx.translate(130, 130);
+            ctx.rotate(i * anglePerSegment + anglePerSegment / 2);
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 12px Arial";
+            ctx.fillText(segments[i], 110, 5);
+            ctx.restore();
+        }
+    }
+    drawWheel();
+
+    // TON Connect Setup
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: 'https://ton-connect.github.io/demo-dapp-with-react-ui/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect'
+    });
+
+    tonConnectUI.onStatusChange(wallet => {
+        const spinBtn = document.getElementById('spin-btn');
+        if (wallet) {
+            spinBtn.disabled = false;
+        } else {
+            spinBtn.disabled = true;
+        }
+    });
+
+    async function processSpin() {
+        if (!tonConnectUI.connected) {
+            alert("Please connect your TON wallet first!");
+            return;
+        }
+
+        const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 600,
+            messages: [
+                {
+                    address: RECIPIENT_WALLET,
+                    amount: "2000000000" // 2 TON in NanoTON
+                }
+            ]
+        };
+
+        try {
+            const result = await tonConnectUI.sendTransaction(transaction);
+            if (result) {
+                document.getElementById('spin-btn').disabled = true;
+                startWheelAnimation();
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Transaction was canceled or failed.");
+        }
+    }
+
+    function startWheelAnimation() {
+        const wheel = document.getElementById('wheel');
+        const randomDegree = 1800 + Math.floor(Math.random() * 360); 
+        wheel.style.transform = `rotate(${randomDegree}deg)`;
+
+        setTimeout(() => {
+            showUniqueCode();
+        }, 4000);
+    }
+
+    function showUniqueCode() {
+        const uniqueId = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const finalCode = `TON-${uniqueId}`;
+
+        document.getElementById('spin-btn').style.display = 'none';
+        document.getElementById('result-box').style.display = 'block';
+        document.getElementById('user-code').innerText = finalCode;
+    }
+</script>
+
+</body>
+  </html>
+  
