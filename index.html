@@ -1,11 +1,11 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TON Lucky Spin Giveaway</title>
     <script src="https://telegram.org/js/telegram-webapp.js"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@1.0.0-beta.1/dist/tonconnect-ui.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -52,12 +52,14 @@
             font-size: 13px;
             font-weight: bold;
             cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
         }
         #ton-connect {
             display: flex;
             justify-content: center;
             margin-bottom: 15px;
-            min-height: 40px;
+            min-height: 50px;
         }
         .wheel-container {
             position: relative;
@@ -144,8 +146,8 @@
     <p>Step 1: Join Channel & Group</p>
     
     <div class="social-links">
-        <button class="social-btn" onclick="openLink('https://t.me/EpicWinOnTON')">📢 Join Channel</button>
-        <button class="social-btn" onclick="openLink('https://t.me/+V0O3UeshzgQzOTFk')">💬 Join Group</button>
+        <a class="social-btn" href="https://t.me/EpicWinOnTON" target="_blank">📢 Join Channel</a>
+        <a class="social-btn" href="https://t.me/+V0O3UeshzgQzOTFk" target="_blank">💬 Join Group</a>
     </div>
 
     <p>Step 2: Connect Wallet & Spin (2 TON)</p>
@@ -166,48 +168,44 @@
 
     <div class="ref-box">
         <p style="margin: 0; font-size: 13px; color: #fff;">🔗 Your Referral Link:</p>
-        <input type="text" id="ref-link" class="ref-input" readonly value="Loading..." />
+        <input type="text" id="ref-link" class="ref-input" readonly value="Generating link..." />
         <button class="action-btn" style="padding: 8px; font-size: 12px; margin-top: 8px;" onclick="copyReferralLink()">Copy Referral Link</button>
     </div>
 </div>
 
 <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+    // Initialize Telegram WebApp
+    let tg = window.Telegram ? window.Telegram.WebApp : null;
+    if (tg) {
+        tg.ready();
+        tg.expand();
+    }
 
     const RECIPIENT_WALLET = "UQDj1NhxiHUEJKGyJw4lg6oP-br5Ruq-onWu7VJqUdZvkJCk"; 
 
-    function openLink(url) {
-        if (tg.openTelegramLink && url.includes('t.me')) {
-            tg.openTelegramLink(url);
-        } else {
-            tg.openLink(url);
+    // Setup Referral Link safely
+    try {
+        let userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : Math.floor(100000 + Math.random() * 900000);
+        let botUsername = "EpicWinOnTon_bot";
+        document.getElementById('ref-link').value = `https://t.me/${botUsername}?start=ref_${userId}`;
+    } catch (e) {
+        document.getElementById('ref-link').value = "https://t.me/EpicWinOnTon_bot";
+    }
+
+    function copyReferralLink() {
+        let refInput = document.getElementById('ref-link');
+        refInput.select();
+        refInput.setSelectionRange(0, 99999);
+        try {
+            navigator.clipboard.writeText(refInput.value);
+            alert("Referral link copied!");
+        } catch (e) {
+            document.execCommand('copy');
+            alert("Referral link copied!");
         }
     }
 
-    // Setup Referral Link
-    const userId = tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 899999 + 100000);
-    const botUsername = "EpicWinOnTon_bot";
-    const referralUrl = `https://t.me/${botUsername}?start=ref_${userId}`;
-    document.getElementById('ref-link').value = referralUrl;
-
-    function copyReferralLink() {
-        const refInput = document.getElementById('ref-link');
-        navigator.clipboard.writeText(refInput.value).then(() => {
-            if (tg.showAlert) {
-                tg.showAlert("Referral link copied to clipboard!");
-            } else {
-                alert("Referral link copied!");
-            }
-        }).catch(() => {
-            refInput.select();
-            document.execCommand('copy');
-            alert("Copied!");
-        });
-    }
-
-    // Canvas Wheel Setup
+    // Wheel Drawing
     const canvas = document.getElementById('wheel');
     const ctx = canvas.getContext('2d');
     const segments = ['CODE A', 'CODE B', 'CODE C', 'GOLD CODE', 'CODE D', 'SPECIAL CODE'];
@@ -236,25 +234,28 @@
     }
     drawWheel();
 
-    // TON Connect Initialization
-    const manifestUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'tonconnect-manifest.json';
-    
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-        manifestUrl: manifestUrl,
-        buttonRootId: 'ton-connect'
-    });
+    // TON Connect UI with demo manifest URL
+    let tonConnectUI = null;
+    try {
+        tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://raw.githubusercontent.com/ton-community/tutorials/main/03-client/5-connect-wallet/public/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect'
+        });
 
-    tonConnectUI.onStatusChange(wallet => {
-        const spinBtn = document.getElementById('spin-btn');
-        if (wallet) {
-            spinBtn.disabled = false;
-        } else {
-            spinBtn.disabled = true;
-        }
-    });
+        tonConnectUI.onStatusChange(wallet => {
+            const spinBtn = document.getElementById('spin-btn');
+            if (wallet) {
+                spinBtn.disabled = false;
+            } else {
+                spinBtn.disabled = true;
+            }
+        });
+    } catch (err) {
+        console.error("TON Connect Error: ", err);
+    }
 
     async function processSpin() {
-        if (!tonConnectUI.connected) {
+        if (!tonConnectUI || !tonConnectUI.connected) {
             alert("Please connect your TON wallet first!");
             return;
         }
@@ -276,8 +277,7 @@
                 startWheelAnimation();
             }
         } catch (e) {
-            console.error(e);
-            alert("Transaction was canceled or failed.");
+            alert("Transaction failed or canceled.");
         }
     }
 
@@ -302,5 +302,5 @@
 </script>
 
 </body>
-</html>
-
+  </html>
+  
