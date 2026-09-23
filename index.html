@@ -188,8 +188,22 @@
         }
     }
 
+    // Fixed function to persist user ID across multiple sessions
+    function getPersistentUserId() {
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+            return tg.initDataUnsafe.user.id;
+        }
+        
+        let storedId = localStorage.getItem('epic_win_user_id');
+        if (!storedId) {
+            storedId = Math.floor(100000 + Math.random() * 900000);
+            localStorage.setItem('epic_win_user_id', storedId);
+        }
+        return storedId;
+    }
+
     try {
-        let userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : Math.floor(100000 + Math.random() * 900000);
+        let userId = getPersistentUserId();
         let botUsername = "EpicWinOnTon_bot";
         document.getElementById('ref-link').value = `https://t.me/${botUsername}?start=ref_${userId}`;
     } catch (e) {
@@ -237,8 +251,7 @@
     }
     drawWheel();
 
-    // Dynamically targeting tonconnect-manifest.json hosted on the same domain
-    const manifestUrl = `${window.location.origin}${window.location.pathname.replace('index.html', '')}tonconnect-manifest.json`;
+    const manifestUrl = "https://pioneertunisia.github.io/ton-spin-app/tonconnect-manifest.json";
 
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
         manifestUrl: manifestUrl,
@@ -302,5 +315,4 @@
 </script>
 
 </body>
-        </html>
-    
+</html>
